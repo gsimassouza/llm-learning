@@ -1,9 +1,10 @@
 [tool.poetry]
-name = "chatbot"
+name = "llm-learning"
 version = "0.1.0"
 description = ""
 authors = ["Guilherme Simas <49327630+gsimassouza@users.noreply.github.com>"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.dependencies]
 python = "^3.11"
