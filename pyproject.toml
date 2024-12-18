@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "chatbot"
+version = "0.1.0"
+description = ""
+authors = ["Guilherme Simas <49327630+gsimassouza@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+streamlit = "^1.39.0"
+groq = "^0.11.0"
+pydantic = "^2.9.2"
+langchain = "^0.3.12"
+langchain-groq = "^0.2.1"
+langchain-core = "^0.3.25"
+
+
+[tool.poetry.group.dev.dependencies]
+ipykernel = "^6.29.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
