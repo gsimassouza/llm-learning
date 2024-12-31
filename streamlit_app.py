@@ -5,6 +5,7 @@ import pandas as pd
 import streamlit as st
 import aisuite as ai
 from dotenv import load_dotenv
+from typing import Generator
 
 load_dotenv()
 
@@ -51,6 +52,12 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
+# define function that yields chat responses through streaming
+def generate_chat_responses(chat_completion) -> Generator[str, None, None]:
+    for chunk in chat_completion:
+        if chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content
+
 prompt = st.chat_input("Enter a message to the AI")
 if prompt:
     with st.chat_message("user"):
@@ -59,15 +66,15 @@ if prompt:
     # add user message to history
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # send message to Groq API
-    response = st.session_state.client.chat.completions.create(
-        model="groq:"+st.session_state.selected_model,
-        messages=st.session_state.messages,
-        temperature=0.0
-    )
-    response_content = response.choices[0].message.content
-    
+
     with st.chat_message("assistant"):
-        st.markdown(response_content)
+        # send message to Groq API
+        stream = st.session_state.client.chat.completions.create(
+            model="groq:"+st.session_state.selected_model,
+            messages=st.session_state.messages,
+            temperature=0.0,
+            stream=True
+        )
+        response = st.write_stream(generate_chat_responses(stream))
     
-    st.session_state.messages.append({"role": "assistant", "content": response_content})
+    st.session_state.messages.append({"role": "assistant", "content": response})
