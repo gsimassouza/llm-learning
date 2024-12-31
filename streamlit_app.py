@@ -13,7 +13,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
-st.sidebar.write("Choose the model you want to talk to!")
+st.sidebar.write("Choose the model you want to chat with!")
 
 st.session_state.model_names = [
     "whisper-large-v3",
@@ -36,9 +36,25 @@ st.session_state.model_names = [
     "llama-3.2-11b-vision-preview"
 ]
 
-st.sidebar.selectbox(label="model", options=st.session_state.model_names)
+st.session_state.selected_model = st.sidebar.selectbox(label="model", options=st.session_state.model_names)
 
-st.title("Bora conversar!")
+st.title("Let's chat!")
 
-# To-do: create the chat itself
+## Creating the chat
 
+# create list of messages if not existant
+if "messages" not in st.session_state:
+    st.session_state.messages = []
+
+# show messages history
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+
+if prompt := st.chat_input("Enter a message to the AI"):
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # add user message to history
+    st.session_state.messages.append({"role": "user", "content": prompt})
