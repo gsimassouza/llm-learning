@@ -10,6 +10,7 @@ from typing import Generator
 load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+SEARCH_API_KEY = os.getenv("SEARCH_API_KEY")
 
 if "client" not in st.session_state:
     st.session_state.client = ai.Client()
@@ -78,3 +79,4 @@ if prompt:
         response = st.write_stream(generate_chat_responses(stream))
     
     st.session_state.messages.append({"role": "assistant", "content": response})
+
