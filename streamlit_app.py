@@ -140,7 +140,7 @@ st.session_state.tools = [
                         The stock symbol or ticker, together with the respective exchange. Some examples:
                         Bitcoin value in USD: 'BTC-USD.CC', where CC stands for cryptocurrency.
                         Apple Inc. stock in NASDAQ: 'AAPL.US'.
-
+                        Itau Unibanco Holding S.A. stock in B3: 'ITUB4.SA', where SA stands for Sao Paulo Exchange.
                         """
                     },
                     "from_date": {
