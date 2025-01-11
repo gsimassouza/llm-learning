@@ -16,6 +16,8 @@ langchain-groq = "^0.2.1"
 langchain-core = "^0.3.25"
 aisuite = "^0.1.7"
 python-dotenv = "^1.0.1"
+pytest = "^8.3.4"
+eod = "^0.2.1"
 
 
 [tool.poetry.group.dev.dependencies]
