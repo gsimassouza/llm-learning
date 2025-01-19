@@ -56,7 +56,8 @@ st.title("Let's chat!")
 if "messages" not in st.session_state:
     st.session_state.messages = [{
         "role": "system",
-        "content": """You are a helpful assistant that uses the tools at your disposal to help users with their queries.
+        "content": """You are a helpful assistant that uses the tools at your disposal to help users with their queries. You must always respond to the user, regardless of the tool calls.
+                    If you need to use a tool that needs a stock symbol as input, you MUST use the tool 'get_stock_symbol' to get the stock symbol first.
                     Do not use the tools several times, but only use when strictly necessary, with minimal calls.""",
     }]
 
@@ -99,6 +100,11 @@ def generate_chat_responses(chat_completion) -> Generator[str, None, None]:
                 
                 if tool_name == "get_eod_historical_stock_market_data":
                     tool_output = get_eod_historical_stock_market_data(**tool_call_args)
+                elif tool_name == "get_stock_symbol":
+                    tool_output = get_stock_symbol(**tool_call_args)
+                else:
+                    tool_output = f"Tool '{tool_name}' not found."
+                
 
                 tool_output_list.append(
                     {
@@ -119,10 +125,27 @@ def generate_chat_responses(chat_completion) -> Generator[str, None, None]:
             st.session_state.messages.extend(tool_output_list)
 
 
-# TOOLS DEFINITION
+#### TOOLS DEFINITION ####
+
+# Function to retrieve end-of-day historical stock market data from EODHD API
 def get_eod_historical_stock_market_data(symbol: str, from_date: str, to_date: str, order: str = 'a', period: str = 'm'):
     result = st.session_state.eodhd_client.get_prices_eod(symbol=symbol, from_=from_date, to=to_date, order=order, period=period, fmt="csv")
     return json.dumps(result)
+
+
+# Function to retrieve stock symbol from raw EODHD API get function using a LLM to structure the json response
+def get_stock_symbol(exchange: str, search_term: str = ""):
+    stock_symbols = st.session_state.eodhd_client.get_exchange_symbols(exchange=exchange)
+    stock_df = pd.DataFrame(stock_symbols)
+    if search_term:
+        # Filter stock names that contain the search term
+        result = stock_df[stock_df["Name"].str.contains(search_term, case=False)]
+    else:
+        result = stock_df
+        
+    result = result.to_dict(orient="records") 
+    return json.dumps(result)
+
 
 
 st.session_state.tools = [
@@ -167,11 +190,36 @@ st.session_state.tools = [
                 "required": ["symbol", "from_date", "to_date"]
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_stock_symbol",
+            "description": "Retrieve stock symbols for a specific exchange.",
+            "parameters": {
+                "type": "object",
+                "properties": [{
+                    "exchange": {
+                        "type": "string",
+                        "description": "The stock exchange code. Some examples: 'US' for NYSE, 'SA' for Sao Paulo Exchange, 'CC' for cryptocurrency."
+                    }
+                },
+                {
+                    "search_term": {
+                        "type": "string",
+                        "description": "The search term to filter stock names that contain it. It can be the name of the company or asset."
+                    }
+                }],
+                "required": ["exchange", "search_term"]
+            }
+        }
     }
 ]
 
 
 prompt = st.chat_input("Enter a message to the AI")
+
+# Flow executed for every received message
 if prompt:
     with st.chat_message("user"):
         st.markdown(prompt)
@@ -181,31 +229,30 @@ if prompt:
 
 
     with st.chat_message("assistant"):
-        # send message to Groq API
-        stream = st.session_state.ai_client.chat.completions.create(
-            model="groq:"+st.session_state.selected_model,
-            messages=st.session_state.messages,
-            temperature=0.0,
-            stream=True,
-            tools=st.session_state.tools
-        )
-
-        response = st.write_stream(generate_chat_responses(stream))
-
-        st.session_state.messages.append({"role": "assistant", "content": response})
-
-        if st.session_state.last_response_required_tool:
-            second_stream = st.session_state.ai_client.chat.completions.create(
+        keep_calling = True
+        max_calls = 5
+        num_calls = 0
+        while keep_calling:
+            # send message to Groq API
+            stream = st.session_state.ai_client.chat.completions.create(
                 model="groq:"+st.session_state.selected_model,
                 messages=st.session_state.messages,
                 temperature=0.0,
                 stream=True,
-                tools=st.session_state.tools,
+                tools=st.session_state.tools
             )
+            num_calls += 1
 
-            second_response = st.write_stream(generate_chat_responses(second_stream))
+            response = st.write_stream(generate_chat_responses(stream))
 
-            st.session_state.messages.append({"role": "assistant", "content": second_response})
+            st.session_state.messages.append({"role": "assistant", "content": response})
+
+            if st.session_state.last_response_required_tool and num_calls < max_calls:
+                keep_calling = True
+            else:
+                keep_calling = False
+                
+
 
 
         
